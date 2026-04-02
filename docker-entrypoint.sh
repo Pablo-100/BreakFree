@@ -33,6 +33,13 @@ fi
 if [ -z "$app_url" ]; then
     app_url="http://localhost:${PORT:-10000}"
 fi
+case "$app_url" in
+    http://localhost*|http://127.0.0.1*)
+        ;;
+    http://*)
+        app_url="https://${app_url#http://}"
+        ;;
+esac
 emit_env "APP_URL" "$app_url"
 
 if [ -n "${APP_SECRET:-}" ]; then
