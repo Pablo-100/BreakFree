@@ -23,9 +23,25 @@ loadEnv(ROOT_PATH . '/.env');
 
 // ─── Base URL ───
 $isProduction = env('APP_ENV', 'development') === 'production';
-$scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+$forwardedProtoHeader = $_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '';
+$forwardedProtoParts = explode(',', $forwardedProtoHeader);
+$forwardedProto = strtolower(trim($forwardedProtoParts[0] ?? ''));
+$scheme = $forwardedProto !== ''
+    ? $forwardedProto
+    : ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http');
 $currentBaseUrl = $scheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost:8000');
-define('BASE_URL', rtrim($isProduction ? env('APP_URL', $currentBaseUrl) : $currentBaseUrl, '/'));
+$baseUrl = $isProduction ? env('APP_URL', $currentBaseUrl) : $currentBaseUrl;
+
+if ($isProduction) {
+    $isLocalHttpUrl = str_starts_with($baseUrl, 'http://localhost')
+        || str_starts_with($baseUrl, 'http://127.0.0.1');
+
+    if (str_starts_with($baseUrl, 'http://') && !$isLocalHttpUrl) {
+        $baseUrl = 'https://' . substr($baseUrl, 7);
+    }
+}
+
+define('BASE_URL', rtrim($baseUrl, '/'));
 
 // ─── Helpers ───
 require_once CONFIG_PATH . '/helpers.php';
